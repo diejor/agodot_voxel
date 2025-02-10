@@ -44,13 +44,25 @@ public:
 		// Names and values must be packed at the beginning of arrays. Unused values must be defaulted.
 		FixedArray<StringName, MAX_ATTRIBUTES> attribute_names;
 		FixedArray<uint8_t, MAX_ATTRIBUTES> attribute_values;
+		uint8_t used_count = 0;
 
 		VariantKey() {
 			fill(attribute_values, uint8_t(0));
+			fill(attribute_names, StringName());
+			used_count = 0;
 		}
 
 		bool operator==(const VariantKey &other) const {
-			return attribute_names == other.attribute_names && attribute_values == other.attribute_values;
+			if (used_count != other.used_count) {
+				return false;
+			}
+			for (uint8_t i = 0; i < used_count; ++i) {
+				if (attribute_names[i] != other.attribute_names[i] ||
+					attribute_values[i] != other.attribute_values[i]) {
+					return false;
+				}
+			}
+			return true;
 		}
 
 		String to_string() const;

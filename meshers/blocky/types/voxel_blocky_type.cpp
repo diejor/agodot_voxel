@@ -621,6 +621,7 @@ void VoxelBlockyType::generate_keys(
 		key.attribute_names[i] = attrib->get_attribute_name();
 		key.attribute_values[i] = attributes_used_values[i][0];
 	}
+	key.used_count = attributes.size();
 
 	for (unsigned int i = 0; i < keys.size(); ++i) {
 		keys[i] = key;
@@ -884,9 +885,11 @@ String VoxelBlockyType::VariantKey::to_string(Span<const Ref<VoxelBlockyAttribut
 
 bool VoxelBlockyType::VariantKey::parse_from_array(const Array &array) {
 	ZN_ASSERT_RETURN_V((array.size() % 2) == 0, false);
-	for (int i = 0; i < array.size(); i += 2) {
-		Variant name_v = array[i];
-		Variant value_v = array[i + 1];
+	int pair_count = array.size() / 2;
+	used_count = pair_count;
+	for (int i = 0; i < pair_count; i += 1) {
+		Variant name_v = array[i * 2];
+		Variant value_v = array[i * 2 + 1];
 
 		ZN_ASSERT_RETURN_V(name_v.get_type() == Variant::STRING_NAME, false);
 		ZN_ASSERT_RETURN_V(value_v.get_type() == Variant::INT, false);
@@ -895,21 +898,22 @@ bool VoxelBlockyType::VariantKey::parse_from_array(const Array &array) {
 		const int value = value_v;
 		ZN_ASSERT_RETURN_V(value >= 0 && value < VoxelBlockyAttribute::MAX_VALUES, false);
 
-		const int attrib_index = i / 2;
-		attribute_names[attrib_index] = name_v;
-		attribute_values[attrib_index] = value;
+		attribute_names[i] = name_v;
+		attribute_values[i] = value;
+	}
+
+	// For any remaining slots, set them explicitly to "empty"
+	for (int i = pair_count; i < MAX_ATTRIBUTES; ++i) {
+		attribute_names[i] = StringName();
+		attribute_values[i] = 0;
 	}
 	return true;
 }
 
 Array VoxelBlockyType::VariantKey::to_array() const {
 	Array array;
-	for (unsigned int i = 0; i < attribute_names.size(); ++i) {
-		const StringName &attribute_name = attribute_names[i];
-		if (attribute_name == StringName()) {
-			break;
-		}
-		array.append(attribute_name);
+	for (uint8_t i = 0; i < used_count; ++i) {
+		array.append(attribute_names[i]);
 		array.append(attribute_values[i]);
 	}
 	return array;
